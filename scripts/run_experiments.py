@@ -29,7 +29,7 @@ def main() -> None:
     parser.add_argument("--data-root", type=Path, default=ROOT / "data" / "MOT17")
     parser.add_argument("--output-root", type=Path, default=ROOT / "outputs")
     parser.add_argument("--partition", choices=["development", "held_out"], required=True)
-    parser.add_argument("--variants", nargs="+", choices=VARIANTS, default=list(VARIANTS))
+    parser.add_argument("--variants", nargs="+", default=list(VARIANTS))
     parser.add_argument("--min-confidence", type=float, default=0.3)
     parser.add_argument("--device", choices=["auto", "cpu", "mps"], default="cpu")
     parser.add_argument("--resume", action="store_true")
@@ -39,7 +39,11 @@ def main() -> None:
     code_revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     code_dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip())
     for variant in args.variants:
+        if Path(variant).name != variant or variant in (".", ".."):
+            raise ValueError("variant must be a config stem in configs/")
         config = ROOT / "configs" / f"{variant}.json"
+        if not config.is_file():
+            raise FileNotFoundError(config)
         config_values = json.loads(config.read_text())
         checkpoint = ROOT / config_values["head_checkpoint"] if config_values.get("head_checkpoint") else None
         checkpoint_hash = sha256(checkpoint) if checkpoint else None
