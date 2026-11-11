@@ -44,7 +44,7 @@ The command creates a partition-specific seqmap and calls TrackEval with HOTA, C
 | Kalman prediction and gating | Implemented | `tests/test_kalman.py` |
 | Short synthetic sequence to results and MP4 | Implemented | `tests/test_cli.py` |
 | CNN features and embedding training | Pending | No model or weights yet |
-| Four held-out ablations and TrackEval report | Pending | MOT17 files not present locally |
+| Four held-out ablations and TrackEval report | Pending | All seven FRCNN training scenes downloaded and audited; appearance variants and benchmark runs pending |
 | Qualitative success/failure clips and final reports | Pending | Requires experiments |
 
 Current output is intentionally a baseline, not a completed research result. The report table will be populated only after fixed-input experiments on the held-out scenes. No tracking improvement is claimed yet.

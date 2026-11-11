@@ -22,4 +22,23 @@ Synthetic tests cover box conversion, IoU, input validation, scene split, Hungar
 - Development-only threshold selection and held-out TrackEval metrics, runtime/hardware table, and qualitative clips.
 - Final Markdown and faithful PDF research reports.
 
-The first official FRCNN training scene has been downloaded locally and used for a smoke run. The command `pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/iou.json --variant iou --render` produced 7,621 result rows and a 600-frame, 1920×1080 MP4. One wall-clock run on an Apple M2 Pro MacBook Pro with 16 GB memory took 0.168 seconds for tracker association and 7.264 seconds end to end, including decoding and rendering. This is a smoke-run timing, not a benchmark or comparison. The other FRCNN training scenes are being retrieved for the committed split audit.
+All seven official FRCNN training scenes were downloaded locally with `scripts/fetch_mot17.py`. Both committed partitions passed `pedtrack audit-data`, including every frame path and first/last image dimensions. At the fixed 0.3 detection-confidence cutoff, the audit counted:
+
+| Partition | Scene | Frames | Retained detections | Annotations |
+|---|---|---:|---:|---:|
+| Development | 02 | 600 | 7,755 | 30,003 |
+| Development | 04 | 1,050 | 27,957 | 108,005 |
+| Development | 05 | 837 | 3,627 | 8,013 |
+| Development | 09 | 525 | 2,980 | 10,411 |
+| Development | 13 | 750 | 7,642 | 20,202 |
+| Held-out | 10 | 654 | 9,095 | 17,450 |
+| Held-out | 11 | 900 | 5,775 | 10,617 |
+
+The first real smoke run used MOT17-02-FRCNN and produced 600-frame, 1920×1080 annotated MP4s for both variants. The IoU baseline wrote 7,621 MOT result rows. Measurements from one wall-clock run each on an Apple M2 Pro MacBook Pro with 16 GB memory:
+
+| Variant | Tracker time | Tracker FPS | End-to-end time with video | End-to-end FPS |
+|---|---:|---:|---:|---:|
+| IoU | 0.168 s | 3,563.71 | 7.264 s | 82.60 |
+| Motion | 5.217 s | 115.01 | 12.271 s | 48.89 |
+
+These are smoke-run timings, not repeated benchmark measurements. No TrackEval metric or tracking-quality comparison has been computed yet.
