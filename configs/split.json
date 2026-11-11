@@ -1,0 +1,8 @@
+{
+  "dataset": "MOT17",
+  "detector": "FRCNN",
+  "seed": 1704,
+  "method": "shuffle sorted scene IDs with Python random.Random(seed); last two held out",
+  "development_scenes": ["02", "04", "05", "09", "13"],
+  "held_out_scenes": ["10", "11"]
+}

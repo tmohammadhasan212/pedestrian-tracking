@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pedestrian-tracking"
+version = "0.1.0"
+description = "A reproducible MOT17 pedestrian tracking research project"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+pedtrack = "tracker.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
