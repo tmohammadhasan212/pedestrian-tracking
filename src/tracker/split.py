@@ -34,3 +34,10 @@ def sequence_names(split: dict, partition: str) -> list[str]:
     if partition not in ("development", "held_out"):
         raise ValueError("partition must be development or held_out")
     return [f"MOT17-{scene}-{split['detector']}" for scene in split[f"{partition}_scenes"]]
+
+
+def validate_training_scenes(metadata: dict, split: dict) -> None:
+    training = metadata.get("training_scenes")
+    allowed = set(sequence_names(split, "development"))
+    if not isinstance(training, list) or not training or not set(training) <= allowed:
+        raise ValueError("appearance checkpoint includes a non-development scene or no training scenes")
