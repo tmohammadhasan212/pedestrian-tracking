@@ -19,7 +19,7 @@ pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/i
 pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/motion.json --variant motion --render
 ```
 
-The results go to `outputs/<variant>/data/MOT17-02-FRCNN.txt` and the optional video to `outputs/<variant>/MOT17-02-FRCNN.mp4`. The printed tracker FPS excludes rendering; end-to-end FPS includes it when `--render` is used. Both are wall-clock measurements and include no model inference yet. You can also use `--video clip.mp4 --detections det.txt`; this reads video dimensions and frame count with FFprobe. Detections are always supplied externally.
+The results go to `outputs/<variant>/data/MOT17-02-FRCNN.txt` and the optional video to `outputs/<variant>/MOT17-02-FRCNN.mp4`. The printed tracker FPS excludes input reading, writing, and rendering. End-to-end time and FPS include all of those steps, including rendering when `--render` is used. Both are wall-clock measurements and include no model inference yet. You can also use `--video clip.mp4 --detections det.txt`; this reads video dimensions and frame count with FFprobe. Detections are always supplied externally.
 
 Run the scene audit before evaluation:
 

@@ -21,6 +21,7 @@ def _config(path: Path) -> TrackerConfig:
 
 
 def _track(args: argparse.Namespace) -> None:
+    overall_started = time.perf_counter()
     if args.sequence_dir:
         info = read_sequence_info(args.sequence_dir)
         detection_path = args.detections or args.sequence_dir / "det" / "det.txt"
@@ -46,9 +47,10 @@ def _track(args: argparse.Namespace) -> None:
         video_output = args.output_root / args.variant / f"{info.name}.mp4"
         render_started = time.perf_counter()
         render_results(info, results, video_output, args.video)
-        total = time.perf_counter() - started
         print(f"Annotated video: {video_output}")
-        print(f"render time: {time.perf_counter() - render_started:.3f}s; end-to-end FPS: {info.length / total:.2f}")
+        print(f"render time: {time.perf_counter() - render_started:.3f}s")
+    total = time.perf_counter() - overall_started
+    print(f"end-to-end time: {total:.3f}s; end-to-end FPS: {info.length / total:.2f}")
 
 
 def _audit(args: argparse.Namespace) -> None:

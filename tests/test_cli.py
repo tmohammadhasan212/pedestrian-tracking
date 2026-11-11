@@ -34,7 +34,8 @@ def test_short_sequence_end_to_end(tmp_path, capsys):
     lines = result.read_text().splitlines()
     assert len(lines) == 2  # min_hits=2
     assert [line.split(",")[:2] for line in lines] == [["2", "1"], ["3", "1"]]
-    assert "tracker FPS" in capsys.readouterr().out
+    printed = capsys.readouterr().out
+    assert "tracker FPS" in printed and "end-to-end time" in printed
     if shutil.which("ffmpeg"):
         video = output / "iou" / "MOT17-02-FRCNN.mp4"
         assert video.is_file() and video.stat().st_size > 0
