@@ -73,13 +73,13 @@ def read_sequence_info(sequence_dir: Path) -> SequenceInfo:
     return info
 
 
-def _rows(path: Path) -> Iterator[tuple[int, list[str]]]:
+def _rows(path: Path, columns: int) -> Iterator[tuple[int, list[str]]]:
     with path.open(newline="") as handle:
         for line_number, row in enumerate(csv.reader(handle), 1):
             if not row or all(not field.strip() for field in row):
                 continue
-            if len(row) != 10:
-                raise ValueError(f"{path}:{line_number}: expected 10 columns, got {len(row)}")
+            if len(row) != columns:
+                raise ValueError(f"{path}:{line_number}: expected {columns} columns, got {len(row)}")
             yield line_number, row
 
 
@@ -95,8 +95,8 @@ def _parse_row(path: Path, line: int, row: list[str], info: SequenceInfo) -> tup
         if not 1 <= frame <= info.length:
             raise ValueError("frame outside sequence")
         box = Box.from_mot(left, top, width, height)
-        if not box.within(info.width, info.height):
-            raise ValueError("box outside image")
+        if not box.intersects_image(info.width, info.height):
+            raise ValueError("box does not intersect image")
         if not 0 <= confidence <= 1:
             raise ValueError("confidence outside [0, 1]")
         return frame, identity, box, confidence, rest
@@ -108,29 +108,21 @@ def read_detections(path: Path, info: SequenceInfo, min_confidence: float = 0.0)
     if not 0 <= min_confidence <= 1:
         raise ValueError("minimum confidence outside [0, 1]")
     grouped: dict[int, list[Detection]] = {}
-    previous = 0
-    for line, row in _rows(path):
+    for line, row in _rows(path, 7):
         frame, _, box, confidence, _ = _parse_row(path, line, row, info)
-        if frame < previous:
-            raise ValueError(f"{path}:{line}: frames are out of order")
-        previous = frame
         if confidence >= min_confidence:
             grouped.setdefault(frame, []).append(Detection(frame, box, confidence))
-    return grouped
+    return {frame: grouped[frame] for frame in sorted(grouped)}
 
 
 def read_annotations(path: Path, info: SequenceInfo) -> dict[int, list[Annotation]]:
     grouped: dict[int, list[Annotation]] = {}
-    previous = 0
-    for line, row in _rows(path):
+    for line, row in _rows(path, 9):
         frame, identity, box, confidence, rest = _parse_row(path, line, row, info)
-        if frame < previous:
-            raise ValueError(f"{path}:{line}: frames are out of order")
         if identity < 1 or not rest[0].is_integer() or not 0 <= rest[1] <= 1:
             raise ValueError(f"{path}:{line}: invalid ground-truth identity/category/visibility")
-        previous = frame
         grouped.setdefault(frame, []).append(Annotation(frame, identity, box, confidence, int(rest[0]), rest[1]))
-    return grouped
+    return {frame: grouped[frame] for frame in sorted(grouped)}
 
 
 def write_results(path: Path, results: list[Result]) -> None:

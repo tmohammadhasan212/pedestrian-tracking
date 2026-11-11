@@ -16,9 +16,9 @@ def make_sequence(tmp_path: Path) -> Path:
     for frame in range(1, 4):
         (root / "img1" / f"{frame:06d}.ppm").write_bytes(b"P6\n64 48\n255\n" + bytes([32, 32, 32]) * 64 * 48)
     (root / "det" / "det.txt").write_text(
-        "1,-1,2,2,12,20,0.9,-1,-1,-1\n"
-        "2,-1,3,2,12,20,0.9,-1,-1,-1\n"
-        "3,-1,4,2,12,20,0.9,-1,-1,-1\n"
+        "1,-1,2,2,12,20,0.9\n"
+        "2,-1,3,2,12,20,0.9\n"
+        "3,-1,4,2,12,20,0.9\n"
     )
     return root
 

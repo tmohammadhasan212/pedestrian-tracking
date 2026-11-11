@@ -19,8 +19,6 @@ class Box:
 
     @classmethod
     def from_mot(cls, left: float, top: float, width: float, height: float) -> "Box":
-        if left < 1 or top < 1:
-            raise ValueError("MOT coordinates are 1-based")
         return cls(left - 1, top - 1, width, height)
 
     def to_mot(self) -> tuple[float, float, float, float]:
@@ -32,6 +30,9 @@ class Box:
 
     def within(self, width: int, height: int) -> bool:
         return self.x >= 0 and self.y >= 0 and self.x + self.w <= width and self.y + self.h <= height
+
+    def intersects_image(self, width: int, height: int) -> bool:
+        return self.x < width and self.y < height and self.x + self.w > 0 and self.y + self.h > 0
 
 
 def iou(a: Box, b: Box) -> float:

@@ -29,17 +29,16 @@ def test_geometry_round_trip_and_iou():
 def test_mot_reader_filtering_and_validation(tmp_path):
     root, info = sample_sequence(tmp_path)
     path = root / "det.txt"
-    path.write_text("1,-1,1,1,10,10,0.9,-1,-1,-1\n2,-1,2,1,10,10,0.1,-1,-1,-1\n")
+    path.write_text("1,-1,1,1,10,10,0.9\n2,-1,2,1,10,10,0.1\n")
     detections = read_detections(path, info, min_confidence=0.5)
     assert list(detections) == [1]
     assert detections[1][0].box == Box(0, 0, 10, 10)
-    path.write_text("2,-1,1,1,10,10,0.9,-1,-1,-1\n1,-1,1,1,10,10,0.9,-1,-1,-1\n")
-    with pytest.raises(ValueError, match="out of order"):
+    path.write_text("2,-1,1,1,10,10,0.9\n1,-1,1,1,10,10,0.9\n")
+    assert list(read_detections(path, info)) == [1, 2]
+    path.write_text("1,-1,105,1,10,10,0.9\n")
+    with pytest.raises(ValueError, match="does not intersect image"):
         read_detections(path, info)
-    path.write_text("1,-1,95,1,10,10,0.9,-1,-1,-1\n")
-    with pytest.raises(ValueError, match="outside image"):
-        read_detections(path, info)
-    path.write_text("1,-1,1,1,10,10,nan,-1,-1,-1\n")
+    path.write_text("1,-1,1,1,10,10,nan\n")
     with pytest.raises(ValueError, match="non-finite"):
         read_detections(path, info)
 
@@ -47,11 +46,20 @@ def test_mot_reader_filtering_and_validation(tmp_path):
 def test_annotations_and_result_format(tmp_path):
     root, info = sample_sequence(tmp_path)
     path = root / "gt.txt"
-    path.write_text("1,7,1,1,10,10,1,1,0.8,-1\n")
+    path.write_text("1,7,1,1,10,10,1,1,0.8\n")
     assert read_annotations(path, info)[1][0].identity == 7
     output = root / "results.txt"
     write_results(output, [Result(1, 7, Box(0, 0, 10, 10), 0.9)])
     assert output.read_text() == "1,7,1.000,1.000,10.000,10.000,0.9000,-1,-1,-1\n"
+
+
+def test_annotations_allow_partial_boxes_and_unordered_frames(tmp_path):
+    root, info = sample_sequence(tmp_path)
+    path = root / "gt.txt"
+    path.write_text("2,7,-2,1,10,10,1,1,0.8\n1,7,1,1,10,10,1,1,0.8\n")
+    annotations = read_annotations(path, info)
+    assert list(annotations) == [1, 2]
+    assert annotations[2][0].box.x == -3
 
 
 def test_scene_split_is_fixed_and_grouped():
