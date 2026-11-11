@@ -55,12 +55,13 @@ def test_evaluation_uses_exact_held_out_seqmap(tmp_path):
         result.write_text("")
     script = tmp_path / "TrackEval" / "scripts" / "run_mot_challenge.py"
     script.parent.mkdir(parents=True)
-    script.write_text("import pathlib, sys\npathlib.Path(sys.argv[1 + sys.argv.index('--SEQMAP_FILE')]).with_suffix('.called').write_text(' '.join(sys.argv))\n")
+    script.write_text("import pathlib, sys\npathlib.Path('" + str(tmp_path / "called.txt") + "').write_text(' '.join(sys.argv))\n")
     main(["evaluate", "--data-root", str(tmp_path / "MOT17"), "--trackeval-root", str(script.parent.parent),
           "--output-root", str(output), "--partition", "held_out", "--variants", "iou"])
     seqmap = output / "seqmaps" / "held_out.txt"
     assert seqmap.read_text().splitlines() == ["name", "MOT17-10-FRCNN", "MOT17-11-FRCNN"]
-    assert "--SKIP_SPLIT_FOL True" in seqmap.with_suffix(".called").read_text()
+    assert (tmp_path / "MOT17" / "train" / "seqmaps" / "MOT17-train.txt").read_text() == seqmap.read_text()
+    assert "--SKIP_SPLIT_FOL True" in (tmp_path / "called.txt").read_text()
 
 
 def test_partial_run_cannot_be_used_as_full_evaluation_result(tmp_path):

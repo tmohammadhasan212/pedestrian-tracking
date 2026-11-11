@@ -12,6 +12,7 @@ dependencies = []
 [project.optional-dependencies]
 test = ["pytest==9.0.3"]
 appearance = ["torch==2.9.1", "torchvision==0.24.1", "Pillow==12.0.0"]
+evaluation = ["numpy==2.5.4", "scipy==1.18.1"]
 
 [project.scripts]
 pedtrack = "tracker.cli:main"

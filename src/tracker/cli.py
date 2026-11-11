@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -140,13 +141,19 @@ def _evaluate(args: argparse.Namespace) -> None:
     seqmap = args.output_root / "seqmaps" / f"{args.partition}.txt"
     seqmap.parent.mkdir(parents=True, exist_ok=True)
     seqmap.write_text("name\n" + "\n".join(names) + "\n")
+    # TrackEval's CLI treats optional path arguments as lists. Use its default
+    # seqmap location so the official evaluation implementation stays unmodified.
+    default_seqmap = args.data_root / "train" / "seqmaps" / "MOT17-train.txt"
+    default_seqmap.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(seqmap, default_seqmap)
     script = args.trackeval_root / "scripts" / "run_mot_challenge.py"
     if not script.is_file():
         raise FileNotFoundError(script)
-    command = [sys.executable, str(script), "--BENCHMARK", "MOT17", "--SPLIT_TO_EVAL", "train",
+    command = [sys.executable, str(PROJECT_ROOT / "scripts" / "run_trackeval_compat.py"), str(script),
+               "--BENCHMARK", "MOT17", "--SPLIT_TO_EVAL", "train",
                "--GT_FOLDER", str(args.data_root / "train"), "--TRACKERS_FOLDER", str(args.output_root),
-               "--OUTPUT_FOLDER", str(args.output_root / "metrics" / args.partition),
-               "--SEQMAP_FILE", str(seqmap), "--SKIP_SPLIT_FOL", "True", "--TRACKER_SUB_FOLDER", "data",
+               "--OUTPUT_SUB_FOLDER", f"metrics/{args.partition}",
+               "--SKIP_SPLIT_FOL", "True", "--TRACKER_SUB_FOLDER", "data",
                "--TRACKERS_TO_EVAL", *args.variants, "--METRICS", "HOTA", "CLEAR", "Identity",
                "--USE_PARALLEL", "False", "--PLOT_CURVES", "False"]
     print("Running official TrackEval on:", ", ".join(names), flush=True)
