@@ -62,16 +62,25 @@ def match_boxes(tracks: list[Box], detections: list[Box], min_iou: float) -> tup
         return [], [], list(range(len(detections)))
     if not detections:
         return [], list(range(len(tracks))), []
-    n, m = len(tracks), len(detections)
-    forbidden = 1e6
-    unmatched_cost = 1 - min_iou + 1e-6
-    costs = [
-        [1 - overlap if (overlap := iou(track, detection)) >= min_iou else forbidden
-         for detection in detections] + [unmatched_cost] * n
-        for track in tracks
-    ]
-    assignment = hungarian(costs)
-    matches = [(i, j) for i, j in enumerate(assignment) if j < m and costs[i][j] < forbidden]
+    costs = [[1 - overlap if (overlap := iou(track, detection)) >= min_iou else None
+              for detection in detections] for track in tracks]
+    return match_costs(costs, len(detections), 1 - min_iou)
+
+
+def match_costs(costs: list[list[float | None]], detection_count: int, unmatched_cost: float) -> tuple[list[tuple[int, int]], list[int], list[int]]:
+    """Assign finite valid costs, with None denoting a gated-out pair."""
+    n, m = len(costs), detection_count
+    if any(len(row) != m for row in costs) or unmatched_cost < 0:
+        raise ValueError("invalid association costs")
+    if not n:
+        return [], [], list(range(m))
+    if not m:
+        return [], list(range(n)), []
+    forbidden = 1e9
+    padded = [[value if value is not None else forbidden for value in row] +
+              [unmatched_cost + 1e-6] * n for row in costs]
+    assignment = hungarian(padded)
+    matches = [(i, j) for i, j in enumerate(assignment) if j < m and costs[i][j] is not None]
     matched_tracks = {i for i, _ in matches}
     matched_detections = {j for _, j in matches}
     return matches, [i for i in range(n) if i not in matched_tracks], [j for j in range(m) if j not in matched_detections]

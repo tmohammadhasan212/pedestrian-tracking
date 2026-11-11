@@ -10,13 +10,14 @@ from pathlib import Path
 from .mot import SequenceInfo, read_annotations, read_detections, read_sequence_info, write_results
 from .render import probe_video, render_results
 from .split import load_split, sequence_names
-from .tracks import IoUTracker, TrackerConfig
+from .tracks import IoUTracker, MotionConfig, MotionTracker, TrackerConfig
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _config(path: Path) -> TrackerConfig:
-    return TrackerConfig(**json.loads(path.read_text()))
+    values = json.loads(path.read_text())
+    return MotionConfig(**values) if "gate_threshold" in values else TrackerConfig(**values)
 
 
 def _track(args: argparse.Namespace) -> None:
@@ -30,7 +31,8 @@ def _track(args: argparse.Namespace) -> None:
             raise ValueError("--detections is required with --video")
         detection_path = args.detections
     detections = read_detections(detection_path, info, args.min_confidence)
-    tracker = IoUTracker(_config(args.config))
+    config = _config(args.config)
+    tracker = MotionTracker(config) if isinstance(config, MotionConfig) else IoUTracker(config)
     started = time.perf_counter()
     results = []
     for frame in range(1, info.length + 1):
