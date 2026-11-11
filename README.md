@@ -4,11 +4,11 @@ This repository implements association and track management for temporary pedest
 
 ## Quick start
 
-Requires Python 3.11+, FFmpeg and FFprobe for rendering, video input, and the frame audit. The tracker core has no third-party runtime dependencies. To install locally:
+Requires Python 3.11+, FFmpeg and FFprobe for rendering, video input, and the frame audit. The IoU and motion tracker core has no third-party runtime dependencies. Appearance variants use pinned PyTorch, TorchVision, and Pillow packages. To install locally:
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -e '.[test]'
+.venv/bin/python -m pip install -e '.[test,appearance]'
 .venv/bin/python -m pytest -q
 ```
 
@@ -18,6 +18,16 @@ Place MOT17 under `data/MOT17/train/` as described in [DATA.md](DATA.md). Run on
 pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/iou.json --variant iou --render
 pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/motion.json --variant motion --render
 ```
+
+Train the embedding head with development scenes only, then try the two appearance variants on the first 30 frames:
+
+```bash
+python scripts/train_embedding.py --data-root data/MOT17 --max-samples 1024 --epochs 5 --pairs-per-epoch 2048
+pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/appearance_pretrained.json --max-frames 30 --render
+pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/appearance_finetuned.json --max-frames 30 --render
+```
+
+The pretrained model weights are downloaded into ignored `data/torch/`. The trained head and metadata are saved under ignored `outputs/appearance/`. A partial tracking run gets a `-first30` filename, which TrackEval will not mistake for a complete sequence. The fine-tuned configuration verifies that the checkpoint's training-scene list is within the committed development split.
 
 The results go to `outputs/<variant>/data/MOT17-02-FRCNN.txt` and the optional video to `outputs/<variant>/MOT17-02-FRCNN.mp4`. The printed tracker FPS excludes input reading, writing, and rendering. End-to-end time and FPS include all of those steps, including rendering when `--render` is used. Both are wall-clock measurements and include no model inference yet. You can also use `--video clip.mp4 --detections det.txt`; this reads video dimensions and frame count with FFprobe. Detections are always supplied externally.
 
@@ -43,8 +53,9 @@ The command creates a partition-specific seqmap and calls TrackEval with HOTA, C
 | MOT17 adapter, split, IoU baseline | Implemented | `tests/test_data.py`, `tests/test_tracker.py` |
 | Kalman prediction and gating | Implemented | `tests/test_kalman.py` |
 | Short synthetic sequence to results and MP4 | Implemented | `tests/test_cli.py` |
-| CNN features and embedding training | Pending | No model or weights yet |
+| CNN features and embedding training | Implemented | `tests/test_appearance.py`; trained checkpoint stored locally |
+| Motion plus appearance fusion | Implemented | `tests/test_appearance_tracker.py` |
 | Four held-out ablations and TrackEval report | Pending | All seven FRCNN training scenes downloaded and audited; appearance variants and benchmark runs pending |
 | Qualitative success/failure clips and final reports | Pending | Requires experiments |
 
-Current output is intentionally a baseline, not a completed research result. The report table will be populated only after fixed-input experiments on the held-out scenes. No tracking improvement is claimed yet.
+Current output is a working pipeline, not a completed research result. The report table will be populated only after fixed-input experiments on the held-out scenes. No tracking improvement is claimed yet.

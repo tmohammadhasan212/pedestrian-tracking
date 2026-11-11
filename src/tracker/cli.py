@@ -5,19 +5,43 @@ import json
 import subprocess
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 
+from .appearance import FeatureExtractor
 from .mot import SequenceInfo, read_annotations, read_detections, read_sequence_info, write_results
 from .render import probe_video, render_results
-from .split import load_split, sequence_names
-from .tracks import IoUTracker, MotionConfig, MotionTracker, TrackerConfig
+from .split import load_split, sequence_names, validate_training_scenes
+from .tracks import AppearanceConfig, AppearanceTracker, IoUTracker, MotionConfig, MotionTracker, TrackerConfig
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
-def _config(path: Path) -> TrackerConfig:
+def _config(path: Path) -> tuple[TrackerConfig, Path | None]:
     values = json.loads(path.read_text())
-    return MotionConfig(**values) if "gate_threshold" in values else TrackerConfig(**values)
+    checkpoint_value = values.pop("head_checkpoint", None)
+    checkpoint = (PROJECT_ROOT / checkpoint_value) if checkpoint_value else None
+    if "appearance_weight" in values:
+        return AppearanceConfig(**values), checkpoint
+    return (MotionConfig(**values) if "gate_threshold" in values else TrackerConfig(**values)), None
+
+
+def _video_images(path: Path, info: SequenceInfo):
+    from PIL import Image
+
+    decoder = subprocess.Popen(["ffmpeg", "-v", "error", "-i", str(path), "-f", "rawvideo",
+                                "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    frame_bytes = info.width * info.height * 3
+    try:
+        assert decoder.stdout is not None
+        for frame in range(1, info.length + 1):
+            raw = decoder.stdout.read(frame_bytes)
+            if len(raw) != frame_bytes:
+                raise RuntimeError(f"video ended before frame {frame}")
+            yield Image.frombytes("RGB", (info.width, info.height), raw)
+    finally:
+        decoder.kill()
+        decoder.wait()
 
 
 def _track(args: argparse.Namespace) -> None:
@@ -32,25 +56,55 @@ def _track(args: argparse.Namespace) -> None:
             raise ValueError("--detections is required with --video")
         detection_path = args.detections
     detections = read_detections(detection_path, info, args.min_confidence)
-    config = _config(args.config)
-    tracker = MotionTracker(config) if isinstance(config, MotionConfig) else IoUTracker(config)
+    config, checkpoint = _config(args.config)
+    variant = args.variant or args.config.stem
+    frame_limit = min(args.max_frames or info.length, info.length)
+    if frame_limit < 1:
+        raise ValueError("--max-frames must be positive")
+    output_info = replace(info, name=f"{info.name}-first{frame_limit}", length=frame_limit) if frame_limit < info.length else info
+    extractor = None
+    if isinstance(config, AppearanceConfig):
+        extractor = FeatureExtractor(checkpoint, device=args.device)
+        if extractor.metadata is not None:
+            validate_training_scenes(extractor.metadata, load_split(args.split))
+        tracker = AppearanceTracker(config)
+    elif isinstance(config, MotionConfig):
+        tracker = MotionTracker(config)
+    else:
+        tracker = IoUTracker(config)
     started = time.perf_counter()
     results = []
-    for frame in range(1, info.length + 1):
-        results.extend(tracker.step(frame, detections.get(frame, [])))
+    video_images = _video_images(args.video, output_info) if extractor and args.video else None
+    try:
+        for frame in range(1, frame_limit + 1):
+            frame_detections = detections.get(frame, [])
+            features = None
+            if extractor and frame_detections:
+                if video_images is not None:
+                    image = next(video_images)
+                    features = extractor.encode_boxes(image, [detection.box for detection in frame_detections])
+                else:
+                    features = extractor.extract_frame(info.frame_path(frame),
+                                                       [detection.box for detection in frame_detections])
+            elif video_images is not None:
+                next(video_images)
+            results.extend(tracker.step(frame, frame_detections, features))
+    finally:
+        if video_images is not None:
+            video_images.close()
     elapsed = time.perf_counter() - started
-    output = args.output_root / args.variant / "data" / f"{info.name}.txt"
+    output = args.output_root / variant / "data" / f"{output_info.name}.txt"
     write_results(output, results)
-    print(f"{info.name}: {info.length} frames, {elapsed:.3f}s tracker time, {info.length / elapsed:.2f} tracker FPS")
+    print(f"{output_info.name}: {frame_limit} frames, {elapsed:.3f}s tracker time, {frame_limit / elapsed:.2f} tracker FPS")
     print(f"MOT results: {output}")
     if args.render:
-        video_output = args.output_root / args.variant / f"{info.name}.mp4"
+        video_output = args.output_root / variant / f"{output_info.name}.mp4"
         render_started = time.perf_counter()
-        render_results(info, results, video_output, args.video)
+        render_results(output_info, results, video_output, args.video)
         print(f"Annotated video: {video_output}")
         print(f"render time: {time.perf_counter() - render_started:.3f}s")
     total = time.perf_counter() - overall_started
-    print(f"end-to-end time: {total:.3f}s; end-to-end FPS: {info.length / total:.2f}")
+    print(f"end-to-end time: {total:.3f}s; end-to-end FPS: {frame_limit / total:.2f}")
 
 
 def _audit(args: argparse.Namespace) -> None:
@@ -108,9 +162,12 @@ def main(argv: list[str] | None = None) -> None:
     source.add_argument("--video", type=Path)
     track.add_argument("--detections", type=Path)
     track.add_argument("--config", type=Path, default=PROJECT_ROOT / "configs" / "iou.json")
-    track.add_argument("--variant", default="iou")
+    track.add_argument("--variant")
     track.add_argument("--output-root", type=Path, default=PROJECT_ROOT / "outputs")
     track.add_argument("--min-confidence", type=float, default=0.3)
+    track.add_argument("--max-frames", type=int)
+    track.add_argument("--device", choices=["auto", "cpu", "mps"], default="auto")
+    track.add_argument("--split", type=Path, default=PROJECT_ROOT / "configs" / "split.json")
     track.add_argument("--render", action="store_true")
     track.set_defaults(func=_track)
     audit = subparsers.add_parser("audit-data")

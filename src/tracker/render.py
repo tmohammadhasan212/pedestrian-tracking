@@ -61,7 +61,8 @@ def render_results(info: SequenceInfo, results: list[Result], output: Path, vide
     source = (["-i", str(video)] if video else
               ["-framerate", str(info.fps), "-start_number", "1", "-i",
                str(info.image_dir / f"%06d{info.image_ext}")])
-    decoder = subprocess.Popen(["ffmpeg", "-v", "error", *source, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+    decoder = subprocess.Popen(["ffmpeg", "-v", "error", *source, "-frames:v", str(info.length),
+                                "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output.parent.mkdir(parents=True, exist_ok=True)
     encoder = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pixel_format", "rgb24",

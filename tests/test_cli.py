@@ -61,3 +61,12 @@ def test_evaluation_uses_exact_held_out_seqmap(tmp_path):
     seqmap = output / "seqmaps" / "held_out.txt"
     assert seqmap.read_text().splitlines() == ["name", "MOT17-10-FRCNN", "MOT17-11-FRCNN"]
     assert "--SKIP_SPLIT_FOL True" in seqmap.with_suffix(".called").read_text()
+
+
+def test_partial_run_cannot_be_used_as_full_evaluation_result(tmp_path):
+    sequence = make_sequence(tmp_path)
+    output = tmp_path / "outputs"
+    main(["track", "--sequence-dir", str(sequence), "--output-root", str(output),
+          "--max-frames", "2"])
+    assert (output / "iou" / "data" / "MOT17-02-FRCNN-first2.txt").is_file()
+    assert not (output / "iou" / "data" / "MOT17-02-FRCNN.txt").exists()
