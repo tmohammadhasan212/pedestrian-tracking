@@ -22,4 +22,4 @@ Synthetic tests cover box conversion, IoU, input validation, scene split, Hungar
 - Development-only threshold selection and held-out TrackEval metrics, runtime/hardware table, and qualitative clips.
 - Final Markdown and faithful PDF research reports.
 
-No MOT17 files are available in this checkout, so no benchmark result or comparison has been measured.
+The first official FRCNN training scene has been downloaded locally and used for a smoke run. The command `pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/iou.json --variant iou --render` produced 7,621 result rows and a 600-frame, 1920×1080 MP4. One wall-clock run on an Apple M2 Pro MacBook Pro with 16 GB memory took 0.168 seconds for tracker association and 7.264 seconds end to end, including decoding and rendering. This is a smoke-run timing, not a benchmark or comparison. The other FRCNN training scenes are being retrieved for the committed split audit.

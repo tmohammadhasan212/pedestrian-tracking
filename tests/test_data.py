@@ -56,10 +56,10 @@ def test_annotations_and_result_format(tmp_path):
 def test_annotations_allow_partial_boxes_and_unordered_frames(tmp_path):
     root, info = sample_sequence(tmp_path)
     path = root / "gt.txt"
-    path.write_text("2,7,-2,1,10,10,1,1,0.8\n1,7,1,1,10,10,1,1,0.8\n")
+    path.write_text("2,7,-20,1,10,10,1,1,0.02\n1,7,1,1,10,10,1,1,0.8\n")
     annotations = read_annotations(path, info)
     assert list(annotations) == [1, 2]
-    assert annotations[2][0].box.x == -3
+    assert annotations[2][0].box.x == -21
 
 
 def test_scene_split_is_fixed_and_grouped():

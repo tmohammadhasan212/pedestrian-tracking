@@ -4,7 +4,7 @@ This repository implements association and track management for temporary pedest
 
 ## Quick start
 
-Requires Python 3.11+, FFmpeg and FFprobe for rendering or video input. The tracker core has no third-party runtime dependencies. To install locally:
+Requires Python 3.11+, FFmpeg and FFprobe for rendering, video input, and the frame audit. The tracker core has no third-party runtime dependencies. To install locally:
 
 ```bash
 python3.12 -m venv .venv

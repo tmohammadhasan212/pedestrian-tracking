@@ -83,7 +83,8 @@ def _rows(path: Path, columns: int) -> Iterator[tuple[int, list[str]]]:
             yield line_number, row
 
 
-def _parse_row(path: Path, line: int, row: list[str], info: SequenceInfo) -> tuple[int, int, Box, float, list[float]]:
+def _parse_row(path: Path, line: int, row: list[str], info: SequenceInfo,
+               require_image_intersection: bool = True) -> tuple[int, int, Box, float, list[float]]:
     try:
         values = [float(value) for value in row]
         frame_float, identity_float, left, top, width, height, confidence, *rest = values
@@ -95,7 +96,7 @@ def _parse_row(path: Path, line: int, row: list[str], info: SequenceInfo) -> tup
         if not 1 <= frame <= info.length:
             raise ValueError("frame outside sequence")
         box = Box.from_mot(left, top, width, height)
-        if not box.intersects_image(info.width, info.height):
+        if require_image_intersection and not box.intersects_image(info.width, info.height):
             raise ValueError("box does not intersect image")
         if not 0 <= confidence <= 1:
             raise ValueError("confidence outside [0, 1]")
@@ -118,7 +119,7 @@ def read_detections(path: Path, info: SequenceInfo, min_confidence: float = 0.0)
 def read_annotations(path: Path, info: SequenceInfo) -> dict[int, list[Annotation]]:
     grouped: dict[int, list[Annotation]] = {}
     for line, row in _rows(path, 9):
-        frame, identity, box, confidence, rest = _parse_row(path, line, row, info)
+        frame, identity, box, confidence, rest = _parse_row(path, line, row, info, require_image_intersection=False)
         if identity < 1 or not rest[0].is_integer() or not 0 <= rest[1] <= 1:
             raise ValueError(f"{path}:{line}: invalid ground-truth identity/category/visibility")
         grouped.setdefault(frame, []).append(Annotation(frame, identity, box, confidence, int(rest[0]), rest[1]))

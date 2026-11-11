@@ -59,8 +59,16 @@ def _audit(args: argparse.Namespace) -> None:
     for name in names:
         directory = args.data_root / "train" / name
         info = read_sequence_info(directory)
-        if not info.frame_path(1).is_file() or not info.frame_path(info.length).is_file():
-            raise FileNotFoundError(f"missing first or last frame in {directory}")
+        missing = next((frame for frame in range(1, info.length + 1) if not info.frame_path(frame).is_file()), None)
+        if missing is not None:
+            raise FileNotFoundError(info.frame_path(missing))
+        for frame in (1, info.length):
+            size = subprocess.check_output(
+                ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
+                 "-of", "csv=p=0:s=x", str(info.frame_path(frame))], text=True
+            ).strip()
+            if size != f"{info.width}x{info.height}":
+                raise ValueError(f"{info.frame_path(frame)}: dimensions {size} disagree with seqinfo.ini")
         detections = read_detections(directory / "det" / "det.txt", info, args.min_confidence)
         annotations = read_annotations(directory / "gt" / "gt.txt", info)
         print(f"{name}: {info.length} frames, {sum(map(len, detections.values()))} detections, "
