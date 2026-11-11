@@ -44,3 +44,19 @@ def test_evaluation_fails_before_trackeval_when_result_missing(tmp_path):
     with pytest.raises(FileNotFoundError, match="MOT17-10-FRCNN"):
         main(["evaluate", "--data-root", str(tmp_path), "--trackeval-root", str(tmp_path),
               "--output-root", str(tmp_path / "outputs"), "--partition", "held_out", "--variants", "iou"])
+
+
+def test_evaluation_uses_exact_held_out_seqmap(tmp_path):
+    output = tmp_path / "outputs"
+    for name in ("MOT17-10-FRCNN", "MOT17-11-FRCNN"):
+        result = output / "iou" / "data" / f"{name}.txt"
+        result.parent.mkdir(parents=True, exist_ok=True)
+        result.write_text("")
+    script = tmp_path / "TrackEval" / "scripts" / "run_mot_challenge.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("import pathlib, sys\npathlib.Path(sys.argv[1 + sys.argv.index('--SEQMAP_FILE')]).with_suffix('.called').write_text(' '.join(sys.argv))\n")
+    main(["evaluate", "--data-root", str(tmp_path / "MOT17"), "--trackeval-root", str(script.parent.parent),
+          "--output-root", str(output), "--partition", "held_out", "--variants", "iou"])
+    seqmap = output / "seqmaps" / "held_out.txt"
+    assert seqmap.read_text().splitlines() == ["name", "MOT17-10-FRCNN", "MOT17-11-FRCNN"]
+    assert "--SKIP_SPLIT_FOL True" in seqmap.with_suffix(".called").read_text()

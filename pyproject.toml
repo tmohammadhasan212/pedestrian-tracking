@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools==80.10.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "A reproducible MOT17 pedestrian tracking research project"
 requires-python = ">=3.11"
 dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest==9.0.3"]
 
 [project.scripts]
 pedtrack = "tracker.cli:main"
