@@ -33,3 +33,21 @@ def test_motion_gating_rejects_implausible_jump():
     tracker.step(1, [Detection(1, Box(0, 0, 10, 20), 0.9)])
     results = tracker.step(2, [Detection(2, Box(100, 0, 10, 20), 0.9)])
     assert [result.identity for result in results] == [2]
+
+
+def test_height_scaled_gate_accepts_plausible_large_box_motion():
+    first = Detection(1, Box(0, 0, 80, 200), 0.9)
+    shifted = Detection(2, Box(40, 0, 80, 200), 0.9)
+    fixed = MotionTracker(MotionConfig(min_hits=1))
+    scaled = MotionTracker(MotionConfig(min_hits=1, gate_reference_height=50))
+    for tracker in (fixed, scaled):
+        tracker.step(1, [first])
+    assert [result.identity for result in fixed.step(2, [shifted])] == [2]
+    assert [result.identity for result in scaled.step(2, [shifted])] == [1]
+    far = Detection(3, Box(1000, 0, 80, 200), 0.9)
+    assert [result.identity for result in scaled.step(3, [far])] == [2]
+
+
+def test_gate_reference_height_must_be_positive():
+    with pytest.raises(ValueError, match="reference height"):
+        MotionConfig(gate_reference_height=0)

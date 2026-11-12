@@ -26,11 +26,14 @@ class TrackerConfig:
 @dataclass(frozen=True)
 class MotionConfig(TrackerConfig):
     gate_threshold: float = 9.488  # chi-square, four measured dimensions, 95%
+    gate_reference_height: float | None = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
         if self.gate_threshold <= 0:
             raise ValueError("gate threshold must be positive")
+        if self.gate_reference_height is not None and self.gate_reference_height <= 0:
+            raise ValueError("gate reference height must be positive")
 
 
 @dataclass(frozen=True)
@@ -141,6 +144,14 @@ class MotionTracker(IoUTracker):
             assert track.kalman is not None
             track.box = track.kalman.predict()
 
+    def _outside_gate(self, track: Track, detection: Detection) -> bool:
+        assert track.kalman is not None
+        threshold = self.config.gate_threshold
+        if self.config.gate_reference_height is not None:
+            ratio = track.box.h / self.config.gate_reference_height
+            threshold *= max(1.0, ratio * ratio)
+        return track.kalman.gating_distance(detection.box) > threshold
+
     def _match(self, detections: list[Detection], features: list[tuple[float, ...] | None]) -> tuple[list[tuple[int, int]], list[int], list[int]]:
         costs = []
         for track in self.tracks:
@@ -148,7 +159,7 @@ class MotionTracker(IoUTracker):
             row = []
             for detection in detections:
                 overlap = iou(track.box, detection.box)
-                gated = track.kalman.gating_distance(detection.box) > self.config.gate_threshold
+                gated = self._outside_gate(track, detection)
                 row.append(None if gated or overlap < self.config.min_iou else 1 - overlap)
             costs.append(row)
         return match_costs(costs, len(detections), 1 - self.config.min_iou)
@@ -182,7 +193,7 @@ class AppearanceTracker(MotionTracker):
             assert track.kalman is not None
             row = []
             for detection, feature in zip(detections, features):
-                if track.kalman.gating_distance(detection.box) > self.config.gate_threshold:
+                if self._outside_gate(track, detection):
                     row.append(None)
                     continue
                 overlap = iou(track.box, detection.box)
