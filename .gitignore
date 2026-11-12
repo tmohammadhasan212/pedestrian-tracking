@@ -5,4 +5,7 @@ __pycache__/
 data/
 outputs/
 *.mp4
+!assets/demo_synthetic.mp4
 .DS_Store
+reminder.md
+public-release/

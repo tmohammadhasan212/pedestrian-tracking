@@ -4,6 +4,18 @@ This repository implements detection-to-track association and track management f
 
 The complete methods, scene-safe split, threshold lock, per-scene metrics, qualitative cases, limitations, and citations are in [the research report](reports/final_report.md) ([PDF](reports/final_report.pdf)). Benchmark data, pretrained weights, learned checkpoint, result files, and six local example clips are excluded from Git.
 
+## Try the live demo
+
+The included [synthetic video](assets/demo_synthetic.mp4) and [matching detections](assets/demo_synthetic_det.txt) are original sample assets. They demonstrate the interface and ID continuity; they are not benchmark evidence. Install Python 3.12 and FFmpeg, then run:
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -e '.[demo]'
+.venv/bin/pedtrack demo --video assets/demo_synthetic.mp4 --detections assets/demo_synthetic_det.txt --config configs/motion_scaled_gate25.json --trails
+```
+
+Open the printed `http://127.0.0.1:8765/` address and click **Start / restart**. Stop the server with Ctrl-C. To regenerate the sample, run `.venv/bin/python scripts/generate_demo_sample.py`.
+
 ## Measured held-out result
 
 Official TrackEval on MOT17-10-FRCNN and MOT17-11-FRCNN, with the same public detections filtered at confidence 0.3 in every variant:
@@ -30,11 +42,11 @@ The local browser demo accepts a **supplied video file plus a matching MOT-style
 .venv/bin/pedtrack demo --video outputs/demo_assets/MOT17-05-FRCNN-first120.mp4 --detections outputs/demo_assets/MOT17-05-FRCNN-first120-det.txt --config configs/motion_scaled_gate25.json --trails
 ```
 
-Open the printed `http://127.0.0.1:8765/` address and click **Start / restart**. Stop the server with Ctrl-C. The sample video and its detections remain under ignored `outputs/`; no benchmark footage is redistributed. For your own video, provide detections numbered to match its frames. The project does not run a detector on arbitrary video.
+The MOT17 video and its detections remain under ignored `outputs/`; no benchmark footage is redistributed. For your own video, provide detections numbered to match its frames. The project does not run a detector on arbitrary video.
 
 ## Setup
 
-Requires Python 3.12, FFmpeg/FFprobe, the official MOT17 training files, and official TrackEval. Python dependencies are pinned in `pyproject.toml`. The appearance backbone weights are downloaded by TorchVision on first use; the trained head is generated locally.
+The full research reproduction requires Python 3.12, FFmpeg/FFprobe, the official MOT17 training files, and official TrackEval. The synthetic live demo only needs Python and FFmpeg. Python dependencies are pinned in `pyproject.toml`. The appearance backbone weights are downloaded by TorchVision on first use; the trained head is generated locally.
 
 ```bash
 python3.12 -m venv .venv
@@ -70,3 +82,7 @@ The experiment runner records detector, config, checkpoint, result hashes, and p
 ## Limitations
 
 The held-out set has only two base scenes, the trained head used one seed and 1,024 crops, and timings are single runs on an Apple M2 Pro CPU. The simple motion gate fragments tracks on these scenes. Detector misses, occlusion, camera motion, and association mistakes require case-specific inspection; the report makes only evidence-backed claims for the displayed clips. No benchmark data, clips, or external model weights are redistributed here.
+
+## License
+
+The original project code, documentation, and synthetic demo assets are provided under the [MIT license](LICENSE). MOTChallenge datasets, TrackEval, and model weights retain their own licenses and terms and are not included.
