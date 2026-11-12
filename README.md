@@ -17,6 +17,19 @@ Official TrackEval on MOT17-10-FRCNN and MOT17-11-FRCNN, with the same public de
 
 The learned head improves on pretrained appearance, but all motion and appearance variants regress against the IoU baseline. These are local held-out training-scene measurements, not results on the benchmark's hidden test split. Threshold choices were locked in [configs/threshold_lock.json](configs/threshold_lock.json) before the held-out runs.
 
+## Development follow-up and live demo
+
+A later [motion-gate follow-up](reports/motion_gate_followup.md) scales gating tolerance with the predicted pedestrian box height. On **development scenes only**, its selected setting scored 46.48 HOTA, 53.38 IDF1, and 543 switches, compared with the IoU baseline's 45.32, 51.41, and 799. The original held-out scenes had already been examined, so these new numbers are exploratory and do not replace the held-out table above.
+
+The local browser demo accepts a **supplied video file plus a matching MOT-style detection file**. It processes frames as they stream, displaying temporary IDs, confidence, FPS, and optional trails. To prepare and show a 120-frame MOT17 example from locally obtained data:
+
+```bash
+.venv/bin/python scripts/prepare_demo_video.py --sequence-dir data/MOT17/train/MOT17-05-FRCNN --frames 120
+.venv/bin/pedtrack demo --video outputs/demo_assets/MOT17-05-FRCNN-first120.mp4 --detections outputs/demo_assets/MOT17-05-FRCNN-first120-det.txt --config configs/motion_scaled_gate25.json --trails
+```
+
+Open the printed `http://127.0.0.1:8765/` address and click **Start / restart**. Stop the server with Ctrl-C. The sample video and its detections remain under ignored `outputs/`; no benchmark footage is redistributed. For your own video, provide detections numbered to match its frames. The project does not run a detector on arbitrary video.
+
 ## Setup
 
 Requires Python 3.12, FFmpeg/FFprobe, the official MOT17 training files, and official TrackEval. Python dependencies are pinned in `pyproject.toml`. The appearance backbone weights are downloaded by TorchVision on first use; the trained head is generated locally.
