@@ -4,7 +4,7 @@
 
 ## Abstract and outcome
 
-We implemented an IoU/Hungarian baseline, then added constant-velocity Kalman prediction and gating, frozen CNN appearance features, and a development-trained embedding head. All comparisons use the same official MOT17 FRCNN detections at confidence 0.3. The scene-safe split has five development and two held-out scenes. We selected thresholds from development TrackEval results and committed `configs/threshold_lock.json` at `a3af579` before any held-out result was generated.
+We implemented an IoU/Hungarian baseline, then added constant-velocity Kalman prediction and gating, frozen CNN appearance features, and a development-trained embedding head. All comparisons use the same official MOT17 FRCNN detections at confidence 0.3. The scene-safe split has five development and two held-out scenes. We selected thresholds from development TrackEval results and committed `configs/threshold_lock.json` before any held-out result was generated.
 
 On the two held-out scenes, **IoU alone was strongest**: 43.62 HOTA, 47.15 IDF1, and 402 ID switches. Motion obtained 25.41 HOTA and 2,527 switches. Pretrained and trained appearance obtained 26.22 and 27.24 HOTA respectively; the learned head improved on pretrained appearance by 1.02 HOTA points and 1.37 IDF1 points, but incurred 64 more switches. The learned method did **not** improve on IoU. These are local held-out training-scene results, not hidden MOTChallenge test-set results.
 
