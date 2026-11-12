@@ -147,6 +147,14 @@ def _audit(args: argparse.Namespace) -> None:
               f"{sum(map(len, annotations.values()))} annotations")
 
 
+def _demo(args: argparse.Namespace) -> None:
+    from .demo import DemoSession, run_demo
+
+    session = DemoSession(args.video, args.detections, args.config, args.min_confidence,
+                          args.max_frames, args.device, args.trails, args.split)
+    run_demo(session, args.port, not args.no_browser)
+
+
 def _evaluate(args: argparse.Namespace) -> None:
     split = load_split(args.split)
     names = sequence_names(split, args.partition)
@@ -195,6 +203,18 @@ def main(argv: list[str] | None = None) -> None:
     track.add_argument("--split", type=Path, default=PROJECT_ROOT / "configs" / "split.json")
     track.add_argument("--render", action="store_true")
     track.set_defaults(func=_track)
+    demo = subparsers.add_parser("demo", help="stream a supplied video with live tracking in a local browser")
+    demo.add_argument("--video", type=Path, required=True)
+    demo.add_argument("--detections", type=Path, required=True)
+    demo.add_argument("--config", type=Path, default=PROJECT_ROOT / "configs" / "motion_scaled_gate25.json")
+    demo.add_argument("--min-confidence", type=float, default=0.3)
+    demo.add_argument("--max-frames", type=int)
+    demo.add_argument("--device", choices=["auto", "cpu", "mps"], default="cpu")
+    demo.add_argument("--split", type=Path, default=PROJECT_ROOT / "configs" / "split.json")
+    demo.add_argument("--trails", action="store_true")
+    demo.add_argument("--port", type=int, default=8765)
+    demo.add_argument("--no-browser", action="store_true")
+    demo.set_defaults(func=_demo)
     audit = subparsers.add_parser("audit-data")
     audit.add_argument("--data-root", type=Path, required=True)
     audit.add_argument("--split", type=Path, default=PROJECT_ROOT / "configs" / "split.json")
