@@ -41,4 +41,4 @@ Both appearance configurations were run on the first 30 frames of MOT17-02-FRCNN
 | Pretrained features | 392 rows | 6.491 s | 8.143 s |
 | Learned head | 392 rows | 6.503 s | 8.145 s |
 
-These are one-off smoke timings, not repeated benchmark measurements. No HOTA, IDF1, MOTA, or identity-switch result has been computed, and no claim of improved tracking quality follows from the training loss or result-row counts.
+These were one-off smoke timings, not repeated benchmark measurements. They preceded the full evaluation, so no tracking-quality claim followed from the training loss or result-row counts. Full TrackEval results are now in [final_report.md](final_report.md); the trained head improves on pretrained appearance but remains below the IoU baseline.

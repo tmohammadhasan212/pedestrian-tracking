@@ -5,3 +5,4 @@ __pycache__/
 data/
 outputs/
 *.mp4
+.DS_Store

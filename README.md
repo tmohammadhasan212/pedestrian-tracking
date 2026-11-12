@@ -1,61 +1,57 @@
 # Pedestrian tracking on MOT17
 
-This repository implements association and track management for temporary pedestrian track numbers within a single video. **A track number does not identify a real person.** The working code currently includes a strict MOT17 reader, scene-safe split, IoU/Hungarian baseline, constant-velocity Kalman prediction with gating, MOT result writer, annotated video renderer, and a wrapper for the official TrackEval metrics. Appearance features, trained embeddings, four-way ablations, and benchmark measurements remain future milestones. No benchmark data or pretrained model is included.
+This repository implements detection-to-track association and track management for **temporary pedestrian track numbers within one video**. A track number does not identify a real person. Given externally supplied detections, the tool writes MOTChallenge results and can render boxes, IDs, and confidence to MP4.
 
-## Quick start
+The complete methods, scene-safe split, threshold lock, per-scene metrics, qualitative cases, limitations, and citations are in [the research report](reports/final_report.md) ([PDF](reports/final_report.pdf)). Benchmark data, pretrained weights, learned checkpoint, result files, and six local example clips are excluded from Git.
 
-Requires Python 3.11+, FFmpeg and FFprobe for rendering, video input, and the frame audit. The IoU and motion tracker core has no third-party runtime dependencies. Appearance variants use pinned PyTorch, TorchVision, and Pillow packages. To install locally:
+## Measured held-out result
+
+Official TrackEval on MOT17-10-FRCNN and MOT17-11-FRCNN, with the same public detections filtered at confidence 0.3 in every variant:
+
+| Variant | HOTA | IDF1 | MOTA | ID switches |
+|---|---:|---:|---:|---:|
+| IoU/Hungarian baseline | **43.62** | **47.15** | **52.44** | **402** |
+| IoU + Kalman motion | 25.41 | 23.96 | 39.14 | 2,527 |
+| Motion + pretrained appearance | 26.22 | 25.02 | 39.16 | 2,534 |
+| Motion + development-trained head | 27.24 | 26.39 | 38.83 | 2,598 |
+
+The learned head improves on pretrained appearance, but all motion and appearance variants regress against the IoU baseline. These are local held-out training-scene measurements, not results on the benchmark's hidden test split. Threshold choices were locked in [configs/threshold_lock.json](configs/threshold_lock.json) before the held-out runs.
+
+## Setup
+
+Requires Python 3.12, FFmpeg/FFprobe, the official MOT17 training files, and official TrackEval. Python dependencies are pinned in `pyproject.toml`. The appearance backbone weights are downloaded by TorchVision on first use; the trained head is generated locally.
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -e '.[test,appearance]'
+.venv/bin/python -m pip install -e '.[test,appearance,evaluation]'
 .venv/bin/python -m pytest -q
 ```
 
-Place MOT17 under `data/MOT17/train/` as described in [DATA.md](DATA.md). Run one short sequence:
+Place the official FRCNN scenes at `data/MOT17/train/MOT17-XX-FRCNN/` with `seqinfo.ini`, `img1/`, `det/det.txt`, and `gt/gt.txt`. [DATA.md](DATA.md) gives the exact seven scenes, deterministic split seed, download approach, and data-use notes. Put official TrackEval in `data/TrackEval/` at commit `12c8791b303e0a0b50f753af204249e622d0281a`.
+
+To check a short sequence and produce a video:
 
 ```bash
-pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/iou.json --variant iou --render
-pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/motion.json --variant motion --render
+.venv/bin/pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/iou.json --variant demo --max-frames 30 --render
 ```
 
-Train the embedding head with development scenes only, then try the two appearance variants on the first 30 frames:
+Results appear under `outputs/demo/`. The partial result filename includes `-first30`, so it cannot be mistaken for a full evaluated scene. The command reports tracker time and end-to-end wall time; rendering is included only when requested.
+
+## Reproduce the comparison
+
+The fixed detector is MOT17 FRCNN. The scene split is committed in `configs/split.json`: development 02, 04, 05, 09, 13; held-out 10, 11. The selected four held-out variants use the exact hashes in `configs/threshold_lock.json`.
 
 ```bash
-python scripts/train_embedding.py --data-root data/MOT17 --max-samples 1024 --epochs 5 --pairs-per-epoch 2048
-pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/appearance_pretrained.json --max-frames 30 --render
-pedtrack track --sequence-dir data/MOT17/train/MOT17-02-FRCNN --config configs/appearance_finetuned.json --max-frames 30 --render
+.venv/bin/pedtrack audit-data --data-root data/MOT17 --partition development
+.venv/bin/pedtrack audit-data --data-root data/MOT17 --partition held_out
+.venv/bin/python scripts/train_embedding.py --data-root data/MOT17 --max-samples 1024 --epochs 5 --pairs-per-epoch 2048 --batch-size 128 --device cpu
+.venv/bin/python scripts/run_experiments.py --partition held_out --variants iou motion appearance_pretrained_weight02 appearance_finetuned --device cpu
+.venv/bin/pedtrack evaluate --data-root data/MOT17 --trackeval-root data/TrackEval --partition held_out --variants iou motion appearance_pretrained_weight02 appearance_finetuned
+.venv/bin/python scripts/render_examples.py
 ```
 
-The pretrained model weights are downloaded into ignored `data/torch/`. The trained head and metadata are saved under ignored `outputs/appearance/`. A partial tracking run gets a `-first30` filename, which TrackEval will not mistake for a complete sequence. The fine-tuned configuration verifies that the checkpoint's training-scene list is within the committed development split.
+The experiment runner records detector, config, checkpoint, result hashes, and per-sequence runtime at `outputs/runs/<partition>/<variant>.json`. Official per-scene and aggregate metrics are at `outputs/<variant>/metrics/<partition>/pedestrian_detailed.csv`. The local six clips and matching manifest are in ignored `outputs/qualitative/` and must be regenerated from legitimately obtained benchmark footage. Development ablation details and full reproduction commands are in the final report.
 
-The results go to `outputs/<variant>/data/MOT17-02-FRCNN.txt` and the optional video to `outputs/<variant>/MOT17-02-FRCNN.mp4`. The printed tracker FPS excludes input reading, writing, and rendering. End-to-end time and FPS include all of those steps, including rendering when `--render` is used. Both are wall-clock measurements and include no model inference yet. You can also use `--video clip.mp4 --detections det.txt`; this reads video dimensions and frame count with FFprobe. Detections are always supplied externally.
+## Limitations
 
-Run the scene audit before evaluation:
-
-```bash
-pedtrack audit-data --data-root data/MOT17 --partition development
-pedtrack audit-data --data-root data/MOT17 --partition held_out
-```
-
-After generating result files for **every** scene in a partition, use the official TrackEval implementation (installed separately):
-
-```bash
-pedtrack evaluate --data-root data/MOT17 --trackeval-root /path/to/TrackEval --partition held_out --variants iou motion
-```
-
-The command creates a partition-specific seqmap and calls TrackEval with HOTA, CLEAR, and Identity metrics. It will fail if any expected result file is absent. It does not train, tune, or compute substitute metrics. The split is in `configs/split.json` and is never recalculated from available files.
-
-## Current status
-
-| Milestone | Status | Evidence |
-|---|---|---|
-| MOT17 adapter, split, IoU baseline | Implemented | `tests/test_data.py`, `tests/test_tracker.py` |
-| Kalman prediction and gating | Implemented | `tests/test_kalman.py` |
-| Short synthetic sequence to results and MP4 | Implemented | `tests/test_cli.py` |
-| CNN features and embedding training | Implemented | `tests/test_appearance.py`; trained checkpoint stored locally |
-| Motion plus appearance fusion | Implemented | `tests/test_appearance_tracker.py` |
-| Four held-out ablations and TrackEval report | Pending | All seven FRCNN training scenes downloaded and audited; appearance variants and benchmark runs pending |
-| Qualitative success/failure clips and final reports | Pending | Requires experiments |
-
-Current output is a working pipeline, not a completed research result. The report table will be populated only after fixed-input experiments on the held-out scenes. No tracking improvement is claimed yet.
+The held-out set has only two base scenes, the trained head used one seed and 1,024 crops, and timings are single runs on an Apple M2 Pro CPU. The simple motion gate fragments tracks on these scenes. Detector misses, occlusion, camera motion, and association mistakes require case-specific inspection; the report makes only evidence-backed claims for the displayed clips. No benchmark data, clips, or external model weights are redistributed here.

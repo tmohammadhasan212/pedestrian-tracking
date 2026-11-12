@@ -13,4 +13,4 @@ Run variants and official metrics with:
 .venv/bin/pedtrack evaluate --data-root data/MOT17 --trackeval-root data/TrackEval --partition development --variants iou motion appearance_pretrained appearance_finetuned
 ```
 
-TrackEval writes `pedestrian_detailed.csv` and `pedestrian_summary.txt` under `outputs/<variant>/metrics/<partition>/`. The detailed CSV contains per-sequence and aggregate HOTA, DetA, AssA, IDF1, MOTA, and ID switches. The script reports per-sequence processing time separately. All benchmark numbers and hardware will be copied into a report only after the full run succeeds.
+TrackEval writes `pedestrian_detailed.csv` and `pedestrian_summary.txt` under `outputs/<variant>/metrics/<partition>/`. The detailed CSV contains per-sequence and aggregate HOTA, DetA, AssA, IDF1, MOTA, and ID switches. The script reports per-sequence processing time separately. The full development and held-out runs are complete. The selected held-out variants and config hashes are fixed in `configs/threshold_lock.json`; measured results and hardware are in [final_report.md](final_report.md). The selected pretrained appearance variant is `appearance_pretrained_weight02`.
