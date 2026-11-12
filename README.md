@@ -21,6 +21,8 @@ The learned head improves on pretrained appearance, but all motion and appearanc
 
 A later [motion-gate follow-up](reports/motion_gate_followup.md) scales gating tolerance with the predicted pedestrian box height. On **development scenes only**, its selected setting scored 46.48 HOTA, 53.38 IDF1, and 543 switches, compared with the IoU baseline's 45.32, 51.41, and 799. The original held-out scenes had already been examined, so these new numbers are exploratory and do not replace the held-out table above.
 
+A subsequent [fresh MOT20 external evaluation](reports/external_mot20.md) compared that frozen motion setting with IoU on four previously unused crowded scenes. The motion setting scored 10.26 versus 10.22 aggregate HOTA and 390 versus 432 switches. The gain is small, and the absolute scores are low because the unchanged 0.3 confidence cutoff retains very few public detections in two scenes. This result supports a modest switch reduction under that fixed setup, not a high-accuracy claim.
+
 The local browser demo accepts a **supplied video file plus a matching MOT-style detection file**. It processes frames as they stream, displaying temporary IDs, confidence, FPS, and optional trails. To prepare and show a 120-frame MOT17 example from locally obtained data:
 
 ```bash
