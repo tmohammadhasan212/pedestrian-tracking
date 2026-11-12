@@ -6,6 +6,10 @@ The complete methods, scene-safe split, threshold lock, per-scene metrics, quali
 
 ## Try the live demo
 
+![Animated output from the synthetic pedestrian tracking demo](assets/demo_output.gif)
+
+The preview shows the tracker output: colored boxes, temporary track IDs, confidence scores, and trails on the bundled synthetic scene. It is an interface example, not an accuracy result.
+
 The included [synthetic video](assets/demo_synthetic.mp4) and [matching detections](assets/demo_synthetic_det.txt) are original sample assets. They demonstrate the interface and ID continuity; they are not benchmark evidence. Install Python 3.12 and FFmpeg, then run:
 
 ```bash
@@ -14,7 +18,7 @@ python3.12 -m venv .venv
 .venv/bin/pedtrack demo --video assets/demo_synthetic.mp4 --detections assets/demo_synthetic_det.txt --config configs/motion_scaled_gate25.json --trails
 ```
 
-Open the printed `http://127.0.0.1:8765/` address and click **Start / restart**. Stop the server with Ctrl-C. To regenerate the sample, run `.venv/bin/python scripts/generate_demo_sample.py`.
+Open the printed `http://127.0.0.1:8765/` address and click **Start / restart**. Stop the server with Ctrl-C. To regenerate the sample and preview, run `.venv/bin/python scripts/generate_demo_sample.py` followed by `.venv/bin/python scripts/render_demo_preview.py`.
 
 ## Measured held-out result
 
