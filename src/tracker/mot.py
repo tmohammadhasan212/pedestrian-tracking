@@ -73,13 +73,15 @@ def read_sequence_info(sequence_dir: Path) -> SequenceInfo:
     return info
 
 
-def _rows(path: Path, columns: int) -> Iterator[tuple[int, list[str]]]:
+def _rows(path: Path, columns: int | tuple[int, ...]) -> Iterator[tuple[int, list[str]]]:
+    allowed = (columns,) if isinstance(columns, int) else columns
     with path.open(newline="") as handle:
         for line_number, row in enumerate(csv.reader(handle), 1):
             if not row or all(not field.strip() for field in row):
                 continue
-            if len(row) != columns:
-                raise ValueError(f"{path}:{line_number}: expected {columns} columns, got {len(row)}")
+            if len(row) not in allowed:
+                expected = " or ".join(str(count) for count in allowed)
+                raise ValueError(f"{path}:{line_number}: expected {expected} columns, got {len(row)}")
             yield line_number, row
 
 
@@ -109,7 +111,7 @@ def read_detections(path: Path, info: SequenceInfo, min_confidence: float = 0.0)
     if not 0 <= min_confidence <= 1:
         raise ValueError("minimum confidence outside [0, 1]")
     grouped: dict[int, list[Detection]] = {}
-    for line, row in _rows(path, 7):
+    for line, row in _rows(path, (7, 10)):
         frame, _, box, confidence, _ = _parse_row(path, line, row, info)
         if confidence >= min_confidence:
             grouped.setdefault(frame, []).append(Detection(frame, box, confidence))

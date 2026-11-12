@@ -43,6 +43,16 @@ def test_mot_reader_filtering_and_validation(tmp_path):
         read_detections(path, info)
 
 
+def test_mot_reader_accepts_ten_column_public_detections(tmp_path):
+    root, info = sample_sequence(tmp_path)
+    path = root / "det.txt"
+    path.write_text("1,-1,1,1,10,10,0.9,-1,-1,-1\n")
+    assert read_detections(path, info, 0.5)[1][0].box == Box(0, 0, 10, 10)
+    path.write_text("1,-1,1,1,10,10,0.9,-1,-1,nan\n")
+    with pytest.raises(ValueError, match="non-finite"):
+        read_detections(path, info)
+
+
 def test_annotations_and_result_format(tmp_path):
     root, info = sample_sequence(tmp_path)
     path = root / "gt.txt"
