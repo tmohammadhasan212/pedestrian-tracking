@@ -32,6 +32,7 @@ def main() -> None:
     parser.add_argument("--variants", nargs="+", default=list(VARIANTS))
     parser.add_argument("--min-confidence", type=float, default=0.3)
     parser.add_argument("--device", choices=["auto", "cpu", "mps"], default="cpu")
+    parser.add_argument("--feature-cache-root", type=Path)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     split = load_split(ROOT / "configs" / "split.json")
@@ -59,6 +60,7 @@ def main() -> None:
                 "sequence": name, "frames": info.length, "detector": split["detector"],
                 "detections_sha256": sha256(detections), "confidence_threshold": args.min_confidence,
                 "config_sha256": sha256(config), "checkpoint_sha256": checkpoint_hash,
+                "feature_cache": bool(args.feature_cache_root),
                 "code_revision": code_revision, "code_dirty": code_dirty,
             }
             previous = rows.get(name)
@@ -72,6 +74,8 @@ def main() -> None:
                        "--config", str(config), "--variant", variant,
                        "--output-root", str(args.output_root), "--min-confidence", str(args.min_confidence),
                        "--device", args.device]
+            if args.feature_cache_root:
+                command.extend(["--feature-cache-root", str(args.feature_cache_root)])
             started = time.perf_counter()
             completed = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
             if completed.returncode:

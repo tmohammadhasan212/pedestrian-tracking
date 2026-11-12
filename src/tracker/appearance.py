@@ -54,7 +54,7 @@ class FeatureExtractor:
             self.metadata = metadata
 
     def encode_boxes(self, image: Any, boxes: list[Box], use_head: bool = True,
-                     batch_size: int = 32) -> list[tuple[float, ...] | None]:
+                     batch_size: int = 32, normalize_output: bool = True) -> list[tuple[float, ...] | None]:
         if batch_size < 1:
             raise ValueError("batch size must be positive")
         crops = [crop_person(image, box) for box in boxes]
@@ -68,7 +68,9 @@ class FeatureExtractor:
                 vectors = self.backbone(batch)
                 if use_head and self.head is not None:
                     vectors = self.head(vectors)
-                vectors = torch.nn.functional.normalize(vectors, dim=1).cpu()
+                if normalize_output:
+                    vectors = torch.nn.functional.normalize(vectors, dim=1)
+                vectors = vectors.cpu()
                 for (index, _), vector in zip(chunk, vectors):
                     features[index] = tuple(float(value) for value in vector.tolist())
         return features
@@ -78,3 +80,17 @@ class FeatureExtractor:
 
         with Image.open(path) as image:
             return self.encode_boxes(image, boxes)
+
+    def project_raw(self, vectors: list[tuple[float, ...] | None]) -> list[tuple[float, ...] | None]:
+        valid = [(index, vector) for index, vector in enumerate(vectors) if vector is not None]
+        result: list[tuple[float, ...] | None] = [None] * len(vectors)
+        with self.torch.inference_mode():
+            for start in range(0, len(valid), 128):
+                chunk = valid[start:start + 128]
+                batch = self.torch.tensor([vector for _, vector in chunk], dtype=self.torch.float32,
+                                          device=self.device)
+                projected = self.head(batch) if self.head is not None else batch
+                projected = self.torch.nn.functional.normalize(projected, dim=1).cpu()
+                for (index, _), vector in zip(chunk, projected):
+                    result[index] = tuple(float(value) for value in vector.tolist())
+        return result

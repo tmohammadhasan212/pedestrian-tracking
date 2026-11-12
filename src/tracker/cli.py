@@ -64,14 +64,28 @@ def _track(args: argparse.Namespace) -> None:
         raise ValueError("--max-frames must be positive")
     output_info = replace(info, name=f"{info.name}-first{frame_limit}", length=frame_limit) if frame_limit < info.length else info
     extractor = None
+    feature_cache = None
     if isinstance(config, AppearanceConfig):
         extractor = FeatureExtractor(checkpoint, device=args.device)
         if extractor.metadata is not None:
             validate_training_scenes(extractor.metadata, load_split(args.split))
+        if args.feature_cache_root is not None:
+            if not args.sequence_dir or frame_limit != info.length:
+                raise ValueError("feature cache requires a full frame-folder sequence")
+            from .feature_cache import load_or_build
+
+            weights = PROJECT_ROOT / "data" / "torch" / "checkpoints" / "mobilenet_v3_small-047dcff4.pth"
+            feature_cache = load_or_build(args.feature_cache_root / f"{info.name}.npz", info,
+                                          detections, detection_path, args.min_confidence, weights, extractor)
+            print(f"feature cache: {'reused' if feature_cache.reused else 'built'}", flush=True)
         tracker = AppearanceTracker(config)
     elif isinstance(config, MotionConfig):
+        if args.feature_cache_root is not None:
+            raise ValueError("feature cache applies only to appearance variants")
         tracker = MotionTracker(config)
     else:
+        if args.feature_cache_root is not None:
+            raise ValueError("feature cache applies only to appearance variants")
         tracker = IoUTracker(config)
     started = time.perf_counter()
     results = []
@@ -80,7 +94,10 @@ def _track(args: argparse.Namespace) -> None:
         for frame in range(1, frame_limit + 1):
             frame_detections = detections.get(frame, [])
             features = None
-            if extractor and frame_detections:
+            if feature_cache is not None:
+                assert extractor is not None
+                features = feature_cache.frame(frame, extractor)
+            elif extractor and frame_detections:
                 if video_images is not None:
                     image = next(video_images)
                     features = extractor.encode_boxes(image, [detection.box for detection in frame_detections])
@@ -174,6 +191,7 @@ def main(argv: list[str] | None = None) -> None:
     track.add_argument("--min-confidence", type=float, default=0.3)
     track.add_argument("--max-frames", type=int)
     track.add_argument("--device", choices=["auto", "cpu", "mps"], default="auto")
+    track.add_argument("--feature-cache-root", type=Path)
     track.add_argument("--split", type=Path, default=PROJECT_ROOT / "configs" / "split.json")
     track.add_argument("--render", action="store_true")
     track.set_defaults(func=_track)

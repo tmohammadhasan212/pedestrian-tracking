@@ -73,6 +73,15 @@ def test_head_training_and_checkpoint_load_without_network(tmp_path):
                              "training_scenes": ["MOT17-02-FRCNN"]}}, checkpoint)
     extractor = FeatureExtractor(checkpoint, device="cpu", pretrained=False)
     assert extractor.head is not None and extractor.head.out_features == 128
+    from PIL import Image
+
+    image = Image.new("RGB", (40, 40), "green")
+    box = Box(0, 0, 20, 30)
+    raw = extractor.encode_boxes(image, [box], use_head=False, normalize_output=False)
+    projected = extractor.project_raw(raw)[0]
+    direct = extractor.encode_boxes(image, [box])[0]
+    assert projected is not None and direct is not None
+    assert projected == pytest.approx(direct, abs=1e-5)
 
 
 def test_checkpoint_scene_metadata_rejects_held_out_identity_training():
