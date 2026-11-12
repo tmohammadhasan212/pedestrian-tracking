@@ -1,0 +1,135 @@
+{
+  "dataset": "MOT17",
+  "detector": "FRCNN",
+  "confidence_threshold": 0.3,
+  "split_path": "configs/split.json",
+  "development_scenes": [
+    "02",
+    "04",
+    "05",
+    "09",
+    "13"
+  ],
+  "held_out_scenes": [
+    "10",
+    "11"
+  ],
+  "primary_selection_metric": "development aggregate HOTA",
+  "locked_variants": {
+    "iou": {
+      "config_path": "configs/iou.json",
+      "config_sha256": "e2c5cfaa695a75f3adfe62638754d46d15e6d07625319f2a592f0d16396d133c",
+      "development_metrics": {
+        "HOTA": 0.4531867208690649,
+        "IDF1": 0.514115767699001,
+        "MOTA": 0.47572815533980584,
+        "IDSW": 799
+      }
+    },
+    "motion": {
+      "config_path": "configs/motion.json",
+      "config_sha256": "8cb29b7c1c20e5319a2e624fdb89ccf879bb1923e8ae916b35c1657dcc0c22c3",
+      "development_metrics": {
+        "HOTA": 0.3896723775021988,
+        "IDF1": 0.42650242128048915,
+        "MOTA": 0.4367821199262403,
+        "IDSW": 3051
+      }
+    },
+    "appearance_pretrained_weight02": {
+      "config_path": "configs/appearance_pretrained_weight02.json",
+      "config_sha256": "3f60689c184d5ee88fe212d4d74f6c478ca28a37f2c05ec02888c3010706874a",
+      "development_metrics": {
+        "HOTA": 0.3904950350313359,
+        "IDF1": 0.4273509353223482,
+        "MOTA": 0.4376930083757304,
+        "IDSW": 3092
+      }
+    },
+    "appearance_finetuned": {
+      "config_path": "configs/appearance_finetuned.json",
+      "config_sha256": "4831dd427ec4a14c2276d2001e9f506324719ab48edd2366c8c5357f733f10b6",
+      "development_metrics": {
+        "HOTA": 0.39631216775475253,
+        "IDF1": 0.43466656781702934,
+        "MOTA": 0.4373486481082402,
+        "IDSW": 3180
+      }
+    }
+  },
+  "development_ablation_results": {
+    "iou": {
+      "HOTA": 0.4531867208690649,
+      "IDF1": 0.514115767699001,
+      "MOTA": 0.47572815533980584,
+      "IDSW": 799
+    },
+    "motion": {
+      "HOTA": 0.3896723775021988,
+      "IDF1": 0.42650242128048915,
+      "MOTA": 0.4367821199262403,
+      "IDSW": 3051
+    },
+    "motion_gate3": {
+      "HOTA": 0.28950407729327593,
+      "IDF1": 0.2982976021287533,
+      "MOTA": 0.3795072315656173,
+      "IDSW": 6208
+    },
+    "motion_missed3": {
+      "HOTA": 0.38264977830255126,
+      "IDF1": 0.4177826991276242,
+      "MOTA": 0.436548843616005,
+      "IDSW": 2451
+    },
+    "motion_iou05": {
+      "HOTA": 0.3888446463574444,
+      "IDF1": 0.4267937437444914,
+      "MOTA": 0.43441603163671105,
+      "IDSW": 2945
+    },
+    "motion_strict": {
+      "HOTA": 0.2743750584367487,
+      "IDF1": 0.28057024603357095,
+      "MOTA": 0.37736331119059785,
+      "IDSW": 4909
+    },
+    "appearance_pretrained": {
+      "HOTA": 0.38980699849176725,
+      "IDF1": 0.4266178465278653,
+      "MOTA": 0.4377041167714559,
+      "IDSW": 3190
+    },
+    "appearance_pretrained_weight02": {
+      "HOTA": 0.3904950350313359,
+      "IDF1": 0.4273509353223482,
+      "MOTA": 0.4376930083757304,
+      "IDSW": 3092
+    },
+    "appearance_finetuned": {
+      "HOTA": 0.39631216775475253,
+      "IDF1": 0.43466656781702934,
+      "MOTA": 0.4373486481082402,
+      "IDSW": 3180
+    },
+    "appearance_finetuned_weight02": {
+      "HOTA": 0.39472018019616134,
+      "IDF1": 0.43154649132582934,
+      "MOTA": 0.43793739308169116,
+      "IDSW": 3063
+    },
+    "appearance_finetuned_weight08": {
+      "HOTA": 0.39620578054861477,
+      "IDF1": 0.43508688689876046,
+      "MOTA": 0.4372486725467108,
+      "IDSW": 3190
+    }
+  },
+  "selection_notes": [
+    "IoU is the untuned baseline.",
+    "Default motion has the highest development HOTA among the four tested motion threshold configurations.",
+    "Pretrained appearance weight 0.2 improves development HOTA and IDF1 and reduces switches relative to weight 0.6.",
+    "Fine-tuned appearance weight 0.6 has the highest development HOTA among tested weights 0.2, 0.6, and 0.8."
+  ],
+  "runtime_note": "Appearance threshold trial wall times used a frozen-feature cache and are not end-to-end inference FPS."
+}
