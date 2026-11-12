@@ -1,0 +1,7 @@
+{
+  "min_iou": 0.3,
+  "min_hits": 2,
+  "max_missed": 15,
+  "duplicate_iou": 0.9,
+  "gate_threshold": 1000000.0
+}
